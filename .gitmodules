@@ -1,0 +1,3 @@
+[submodule "coco-guest-components"]
+	path = coco-guest-components
+	url = https://github.com/confidential-containers/guest-components.git
