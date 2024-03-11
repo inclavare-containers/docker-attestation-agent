@@ -1,0 +1,54 @@
+# Copyright (c) 2024 by Alibaba.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+FROM rust:latest as builder
+
+WORKDIR /usr/src/guest-components
+COPY ./coco-guest-components .
+
+# Install Build Dependencies
+RUN apt-get update && apt-get install -y clang libtss2-dev
+
+# Install SGX && TDX Build Dependencies
+RUN curl -L https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | \
+    tee intel-sgx-deb.key | apt-key add - && \
+    echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | \
+    tee /etc/apt/sources.list.d/intel-sgx.list && \
+    apt-get update && apt-get install -y libtdx-attest-dev libsgx-dcap-quote-verify-dev
+
+# Build attestation-agent
+RUN cd attestation-agent/ && make ATTESTER=all-attesters ttrpc=true
+
+
+FROM ubuntu:22.04
+
+LABEL org.opencontainers.image.source="https://github.com/inclavare-containers/attestation-agent"
+
+# Use Default KBC: cc_kbc, and Local KBS with Address of http://127.0.0.1:8085.
+ARG AA_KBC_PARAMS=cc_kbc::http://127.0.0.1:8085
+ARG RUST_LOG=debug
+
+# Install TDX Runtime Dependencies
+RUN apt-get update && apt-get install -y curl gnupg openssl && \
+    curl -L https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | \
+    tee intel-sgx-deb.key | apt-key add - && \
+    echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | \
+    tee /etc/apt/sources.list.d/intel-sgx.list && \
+    apt-get update && apt-get install -y libtdx-attest-dev libsgx-dcap-quote-verify && \
+    rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
+
+# Copy TPM Runtime Dependencies
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libtss* /usr/lib/x86_64-linux-gnu
+
+# Copy attestation-agent Binary
+COPY --from=builder /usr/src/guest-components/target/x86_64-unknown-linux-gnu/release/attestation-agent /usr/local/bin/attestation-agent
+
+# Set Environment Parameters
+ENV AA_KBC_PARAMS=${AA_KBC_PARAMS}
+ENV RUST_LOG=${RUST_LOG}
+
+# Start attestation-agent with Default Unix Sock (/run/confidential-containers/attestation-agent/attestation-agent.sock)
+VOLUME /run/confidential-containers/attestation-agent/
+
+CMD [ "attestation-agent" ]
