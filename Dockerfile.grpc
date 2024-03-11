@@ -1,0 +1,54 @@
+# Copyright (c) 2024 by Alibaba.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+FROM rust:latest as builder
+
+WORKDIR /usr/src/guest-components
+COPY ./coco-guest-components .
+
+# Install Build Dependencies
+RUN apt-get update && apt-get install -y clang libtss2-dev protobuf-compiler
+
+# Install SGX && TDX Build Dependencies
+RUN curl -L https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | tee intel-sgx-deb.key | apt-key add - && \
+    echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | tee /etc/apt/sources.list.d/intel-sgx.list && \
+    apt-get update && apt-get install -y libtdx-attest-dev libsgx-dcap-quote-verify-dev
+
+# Build attestation-agent
+RUN cd attestation-agent/ && make ATTESTER=all-attesters
+
+
+FROM ubuntu:22.04
+
+LABEL org.opencontainers.image.source="https://github.com/inclavare-containers/attestation-agent"
+
+# Use Default KBC: cc_kbc, and Local KBS with Address of http://127.0.0.1:8080.
+ARG AA_KBC_PARAMS=cc_kbc::http://127.0.0.1:8085
+ARG RUST_LOG=debug
+
+# Install Runtime Dependencies
+RUN apt-get update && apt-get install -y protobuf-compiler
+
+# Install TDX Runtime Dependencies
+RUN apt-get update && apt-get install curl gnupg openssl -y && \
+    rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
+
+RUN curl -L https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | tee intel-sgx-deb.key | apt-key add - && \
+    echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | tee /etc/apt/sources.list.d/intel-sgx.list && \
+    apt-get update && apt-get install -y libtdx-attest-dev libsgx-dcap-quote-verify
+
+# Copy TPM Runtime Dependencies
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libtss* /usr/lib/x86_64-linux-gnu
+
+# Copy attestation-agent Binary
+COPY --from=builder /usr/src/guest-components/target/x86_64-unknown-linux-gnu/release/attestation-agent /usr/local/bin/attestation-agent
+
+# Set Environment Parameters
+ENV AA_KBC_PARAMS=${AA_KBC_PARAMS}
+ENV RUST_LOG=${RUST_LOG}
+
+# start attestation-agent with default address (127.0.0.1:50002)
+CMD [ "attestation-agent"]
+
+EXPOSE 50002
