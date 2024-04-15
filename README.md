@@ -1,12 +1,15 @@
-Attestation Agent (aka AA) is a service for the attestation procedure in Confidential Computing. It provides several kinds of service APIs related to attestation.
+Attestation Agent (aka AA) is a service for the attestation procedure in
+Confidential Computing. It provides several kinds of service APIs related
+to attestation.
 
 This repository packages AA into an easy-to-use image.
 
-For more details, please visit [Attestation Agent](https://github.com/confidential-containers/guest-components/blob/main/attestation-agent/README.md)
+For more details, please visit the upstream of [Attestation Agent](https://github.com/confidential-containers/guest-components/blob/main/attestation-agent/README.md).
 
 # Build AA Image
 
-AA offers 2 kinds of interface, gRPC and ttrpc. Please choose corresponding Dockerfile to build your AA image.
+AA offers 2 kinds of interface, gRPC and ttrpc. Please choose the corresponding
+Dockerfile to build your AA image.
 
 ## Prerequisites
 
@@ -29,13 +32,13 @@ docker build -f ./Dockerfile.ttrpc -t attestation-agent:ttrpc .
 
 # Run AA image with Docker
 
-gRPC image and ttrpc image run in a slightly different way.
+gRPC or ttrpc image runs in a slightly different way.
 
 ## Prerequisites
 
 - Ensure Docker is installed on your system
-- Installed AA image
-- TEE-supported CPU, including:
+- AA image is installed
+- The running platform supports a CPU-TEE, including:
     - Intel TDX
     - Intel SGX
     - AMD SEV-SNP
@@ -45,11 +48,12 @@ gRPC image and ttrpc image run in a slightly different way.
 
 ## Configuration
 
-You can modify the configuration of AA by setting the following environment variables when starting the container.
+You can modify the configuration of AA by setting the following environment
+variables when starting the container.
 
 ### AA_KBC_PARAMS
 
-- Usage: specify the KBC type and KBS address.
+- Usage: specify the KBC type and KBS address
 - Optional Value: AA_KBC_PARAMS=cc_kbc::{KBS_address}
 - Default Value: AA_KBC_PARAMS=cc_kbc::http://127.0.0.1:8085
 
@@ -59,7 +63,7 @@ You can modify the configuration of AA by setting the following environment vari
 - Optional Value: RUST_LOG={error, warn, info, debug, trace}
 - Default Value: RUST_LOG=debug
 
-## gRPC interface
+## Run AA image with gRPC interface
 
 Run `attestation-agent:grpc` image.
 ```shell
@@ -68,7 +72,7 @@ docker run -d \
     --name attestation-agent-grpc attestation-agent:grpc
 ```
 
-## ttrpc interface
+## Run AA image with ttrpc interface
 
 Run `attestation-agent:ttrpc` image.
 ```shell
