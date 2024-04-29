@@ -7,7 +7,7 @@ FROM rust:latest as builder
 
 # The list of build argument with docker build --build-arg NAME=VALUE
 # Define the default commit of source code
-ARG AA_COMMIT=917097b5dbd61078af037e5411f0760d47981640
+ARG AA_COMMIT=HEAD
 
 WORKDIR /usr/src
 

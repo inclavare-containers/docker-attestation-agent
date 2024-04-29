@@ -6,7 +6,7 @@ This repository packages AA into an easy-to-use image.
 
 For more details, please visit the upstream of [Attestation Agent](https://github.com/confidential-containers/guest-components/blob/main/attestation-agent/README.md).
 
-# Build AA Image
+# Build AA Images
 
 AA offers 2 kinds of interface, gRPC and ttrpc. Please choose the corresponding
 Dockerfile to build your AA image.
@@ -18,17 +18,20 @@ Dockerfile to build your AA image.
 ## Build Image
 
 ```shell
-# download code
+# download the source
 git clone --recurse-submodules \
     https://github.com/inclavare-containers/attestation-agent.git && \
     cd attestation-agent
 
 # build AA image with gRPC interface
-docker build -f ./Dockerfile.grpc -t attestation-agent:grpc .
+make build-grpc
 
-# or build AA image with ttrpc interface
-docker build -f ./Dockerfile.ttrpc -t attestation-agent:ttrpc .
+# build AA image with ttrpc interface
+make build-ttrpc
 ```
+
+In order to build AA with the specific commit, please set the environment
+variable AA_COMMIT to build. Run `make help` to get the full help information.
 
 # Run AA image with Docker
 
