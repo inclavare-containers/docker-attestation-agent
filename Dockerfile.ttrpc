@@ -12,7 +12,8 @@ ARG AA_COMMIT=917097b5dbd61078af037e5411f0760d47981640
 WORKDIR /usr/src
 
 # Install the build dependencies
-RUN apt-get update && apt-get install -y clang libtss2-dev
+RUN apt-get update && \
+    apt-get install -y clang libtss2-dev sudo
 
 # Install the SGX & TDX build dependencies
 RUN curl \
@@ -32,13 +33,15 @@ RUN git clone https://github.com/confidential-containers/guest-components \
 
 FROM ubuntu:22.04
 
-LABEL org.opencontainers.image.source="https://github.com/inclavare-containers/attestation-agent"
-
-# Use Default KBC: cc_kbc, and Local KBS with Address of http://127.0.0.1:8085.
+# The list of runtime argument with docker run -e NAME=VALUE
+# Use the default KBC cc_kbc and local KBS with address http://127.0.0.1:8085
 ARG AA_KBC_PARAMS=cc_kbc::http://127.0.0.1:8085
 ARG RUST_LOG=debug
 
-# Install TDX Runtime Dependencies
+# Define the source of this AA image
+LABEL org.opencontainers.image.source="https://github.com/inclavare-containers/attestation-agent"
+
+# Install the SGX & TDX runtime dependencies
 RUN apt-get update && apt-get install -y curl gnupg openssl && \
     curl \
       -L https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | \
@@ -46,23 +49,23 @@ RUN apt-get update && apt-get install -y curl gnupg openssl && \
     echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | \
     tee /etc/apt/sources.list.d/intel-sgx.list && \
     apt-get update && \
-      apt-get install -y libtdx-attest-dev libsgx-dcap-quote-verify && \
+    apt-get install -y libtdx-attest-dev libsgx-dcap-quote-verify && \
     rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
-# Copy TPM Runtime Dependencies
+# Copy the TPM runtime dependencies
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libtss* /usr/lib/x86_64-linux-gnu
 
-# Copy attestation-agent Binary
+# Copy the attestation-agent binary
 COPY --from=builder \
      /usr/src/guest-components/target/x86_64-unknown-linux-gnu/release/attestation-agent \
      /usr/local/bin/attestation-agent
 
-# Set Environment Parameters
+# Set the environment parameters
 ENV AA_KBC_PARAMS=${AA_KBC_PARAMS}
 ENV RUST_LOG=${RUST_LOG}
 
-# Start attestation-agent with Default unix domain socket
-# (/run/confidential-containers/attestation-agent/attestation-agent.sock)
+# Start attestation-agent with the unix domain socket
+# at /run/confidential-containers/attestation-agent/attestation-agent.sock
 VOLUME /run/confidential-containers/attestation-agent/
 
 CMD [ "attestation-agent" ]

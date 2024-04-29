@@ -41,7 +41,7 @@ ARG RUST_LOG=debug
 # Define the source of this AA image
 LABEL org.opencontainers.image.source="https://github.com/inclavare-containers/attestation-agent"
 
-# Install the TDX runtime dependencies
+# Install the SGX & TDX runtime dependencies
 RUN apt-get update && apt-get install -y curl gnupg openssl && \
     curl \
       -L https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | \
@@ -57,14 +57,14 @@ COPY --from=builder /usr/lib/x86_64-linux-gnu/libtss* /usr/lib/x86_64-linux-gnu
 
 # Copy the attestation-agent binary
 COPY --from=builder \
-    /usr/src/guest-components/target/x86_64-unknown-linux-gnu/release/attestation-agent \
-    /usr/local/bin/attestation-agent
+     /usr/src/guest-components/target/x86_64-unknown-linux-gnu/release/attestation-agent \
+     /usr/local/bin/attestation-agent
 
 # Set the environment parameters
 ENV AA_KBC_PARAMS=${AA_KBC_PARAMS}
 ENV RUST_LOG=${RUST_LOG}
 
-# Start attestation-agent with Default Address (127.0.0.1:50002)
+# Start attestation-agent with the default address at 127.0.0.1:50002
 CMD [ "attestation-agent" ]
 
 EXPOSE 50002
