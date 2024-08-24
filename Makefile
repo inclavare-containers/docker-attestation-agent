@@ -1,6 +1,6 @@
 AA_COMMIT ?=
 
-default_aa_commit := 917097
+default_aa_commit := 03fcb12c4cd8471e59e0ea4752e945ea46e7dc65
 
 ifeq ($(AA_COMMIT),)
     aa_commit := $(default_aa_commit)
